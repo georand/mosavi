@@ -15,12 +15,19 @@ python mosavi.py  -f 5 "example/frame_*.png" "example/flow_*.png" "example/metri
 ```
 3.  You can now browse and play the sequences using the following hotkeys:'
 up or left     previous
+
 down or right  next
+
 page_up        jump forward
+
 page_down      jump backward
+
 home           go to the beginning
+
 end            go to the end
+
 p              start/pause playing
+
 h              help
 
 
