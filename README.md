@@ -2,7 +2,9 @@
 
 # MosaVi (Mosaic Viewer)
 
-A minimalist viewer for video image sequences. View multiple sets of images in a mosaic format and scroll through them in a synchronized manner.
+A minimalist viewer for video image sequences.
+
+View multiple sets of images in a mosaic format and scroll through them in a synchronized manner.
 
 ## Quick Start
 1. Install the python dependencies
