@@ -27,6 +27,8 @@ h              help
 ```
 
 ## Usage
+Important note: in order to prevent file pattern expansion by the shell, you may need to enclose the patterns with double quotes (ex: "example/frame_*.png").
+
 ```
 mosavi.py [-h] [-s int int] [-f int] filePatterns [filePatterns ...]<br>
 
@@ -41,4 +43,3 @@ options:
 ```
 
 ## !!! Important !!!
-In order to prevent file pattern expansion by the shell, you may need to enclose the patterns with double quotes (ex: "example/frame_*.png").
