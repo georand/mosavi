@@ -20,6 +20,7 @@ HELP = [
 ###############################################################################
 
 import argparse, glob
+from pathlib import PurePath
 from os.path import (abspath as os_abspath,
                      expanduser as os_expanduser,
                      basename as os_basename)
@@ -88,7 +89,10 @@ class MosaicApp(App):
       self.images.append(img)
 
       # write image label
-      label = Label(text=imagePath, halign='left',
+      p = PurePath(imagePath)
+      s = p.parent.name+'/'+p.name
+#      s = "xx"
+      label = Label(text=s, halign='left',
                     color=(1, 1, 1, 1), size_hint=(1, None),)
       label.texture_update()
       label.height = label.texture_size[1]+10
