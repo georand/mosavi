@@ -20,12 +20,11 @@ HELP = [
 ###############################################################################
 
 import argparse, glob
+from os import environ as os_environ
 from pathlib import PurePath
 from os.path import (abspath as os_abspath,
                      expanduser as os_expanduser,
                      basename as os_basename)
-from os import environ as os_environ
-import math
 
 os_environ["KIVY_NO_ARGS"] = '1'
 os_environ["KIVY_NO_CONSOLELOG"] = '1'
@@ -35,6 +34,7 @@ from kivy.app import App
 from kivy.logger import Logger, LOG_LEVELS
 from kivy.clock import Clock
 from kivy.core.window import Window
+from kivy.uix.widget import Widget
 from kivy.uix.popup import Popup
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
@@ -42,11 +42,15 @@ from kivy.uix.image import Image
 from kivy.uix.textinput import TextInput
 from kivy.uix.label import Label
 
+DEBUG = False
+
 ###############################################################################
 
-class MosaicApp(App):
+from kivy.uix.floatlayout import FloatLayout
+class MosaicWindow(FloatLayout):
   def __init__(self, fileLists, shape=None, fps=25, **kwargs):
-    super(MosaicApp, self).__init__(**kwargs)
+    super(MosaicWindow, self).__init__(**kwargs)
+
     self.fileLists = fileLists
     self.shape = shape
     self.fps = fps
@@ -55,22 +59,19 @@ class MosaicApp(App):
     self.play = False
     self.maxIndex = max(len(l) for l in self.fileLists)-1
 
-  def build(self):
-    self.title = "MosaVi"
-    Window.size = (1280, 800)
-    Window.left = 100
-    Window.top = 100
-    Window.bind(on_key_down=self.onKeyDown)
-
     if not self.shape:
       self.shape = mosaicDim(len(self.fileLists))
 
     self.layout = GridLayout(cols=self.shape[0], rows=self.shape[1],
-                             size_hint=(1, 1))
+                             size_hint=(1, 1) )
 
+    self.layout.bind(minimum_size=self.layout.setter('size'))
     self.displayImages()
 
-    return self.layout
+    Window.bind(on_key_down=self.onKeyDown)
+    Window.bind(on_touch_down=self.onTouchDown)
+
+    self.add_widget(self.layout)
 
   def displayImages(self):
 
@@ -91,7 +92,6 @@ class MosaicApp(App):
       # write image label
       p = PurePath(imagePath)
       s = p.parent.name+'/'+p.name
-#      s = "xx"
       label = Label(text=s, halign='left',
                     color=(1, 1, 1, 1), size_hint=(1, None),)
       label.texture_update()
@@ -143,6 +143,14 @@ class MosaicApp(App):
     elif key == 104:  # h -> help  (since kivy catch F1)
       self.popupHelp()
 
+  def onTouchDown(self, instance, touch):
+    if touch.button == 'scrollup':
+      self.shiftFrame(-1)
+    elif touch.button == 'scrolldown':
+      self.shiftFrame(1)
+    else:
+      return super(MosaicWindow, self).on_touch_down(touch)
+
   def popupHelp(self):
     layout = BoxLayout(orientation='horizontal')
     leftLayout = BoxLayout(orientation='vertical', size_hint_x=-1)
@@ -157,6 +165,26 @@ class MosaicApp(App):
     layout.add_widget(rightLayout)
     popup = Popup(title='Help', content=layout, size_hint=(0.3, 0.3))
     popup.open()
+
+###############################################################################
+
+class MosaicApp(App):
+  def __init__(self, fileLists, shape, fps, **kwargs):
+    super(MosaicApp, self).__init__(**kwargs)
+
+    self.fileLists = fileLists
+    self.shape = shape
+    self.fps = fps
+    self.title = "MosaVi"
+
+    Window.size = (1280, 800)
+    Window.left = 10000
+    Window.top = 10000
+    Window.left = (Window.left - Window.width) // 2
+    Window.top = (Window.top - Window.height) // 2
+
+  def build(self):
+    return MosaicWindow(self.fileLists, self.shape, self.fps)
 
   def on_start(self):
     pass
@@ -186,15 +214,20 @@ def mosaicDim(n):
 
 if __name__ == '__main__':
 
+  error = False
+
   description = "an image mosaic viewer allowing to view simultaneously\
   several set of images. Hit key 'h' to get help \n"
   parser = argparse.ArgumentParser(description=description)
+  parser.add_argument('-d','--debug',
+                     action='store_true', dest='debug', default=False,
+                     help = 'debug mode')
   parser.add_argument('-s', '--shape', nargs=2, metavar='int', required=False,
-                      dest='shape',  type= int, default = None,
+                      dest='shape',  type=int, default = None,
                       help="the mosaic shape (e.g., \"width height\")")
   parser.add_argument('-f', '--fps', metavar='int', required=False,
                       dest='fps',  type= int,
-                      choices=range(1, 100), default = 25,
+                      choices=range(1, 100), default = 5,
                       help="Number of frames  per second when in play mode")
   parser.add_argument('filePatterns', nargs='+',
                       help = "one or several frame file paths. "
@@ -202,14 +235,18 @@ if __name__ == '__main__':
                       "to be enclosed in double quotes !!!")
   args = parser.parse_args()
 
+  if args.debug:
+    DEBUG = True
+    os_environ["KIVY_NO_CONSOLELOG"] = '0'
+    os_environ["KIVY_NO_FILELOG"] = '0'
+
   if args.shape and len(args.filePatterns) > args.shape[0] * args.shape[1]:
     print("\n  Bad shape error: not enough mosaic cells"
           f" (shape_width * shape_height < {len(args.filePatterns)}).",
           "\n  Exiting...")
-    exit(-1)
+    error = True
 
   fileLists = []
-  error = False
   for fp in args.filePatterns:
     p = os_expanduser(fp)
     l = sorted(glob.glob(p))
@@ -218,7 +255,6 @@ if __name__ == '__main__':
       error = True
     else:
       fileLists.append(l)
-  if error:
-    exit(-1)
 
-  MosaicApp(fileLists, shape=args.shape, fps=args.fps).run()
+  if not error:
+    MosaicApp(fileLists, shape=args.shape, fps=args.fps).run()
